@@ -345,7 +345,7 @@ typedef struct {
 	int flags;
 
 	endpoint_t user;
-	unsigned long request;
+	int request;
 
 	uint8_t padding[16];
 } mess_lbdev_lblockdriver_msg;
@@ -418,6 +418,16 @@ typedef struct {
 	uint8_t		padding[40];
 } mess_lc_ipc_shmget;
 _ASSERT_MSG_SIZE(mess_lc_ipc_shmget);
+
+typedef struct {
+	int action;
+	vir_bytes ctl_ptr;
+	vir_bytes mem_ptr;
+	size_t mem_size;
+
+	uint8_t padding[40];
+} mess_lc_pm_cprof;
+_ASSERT_MSG_SIZE(mess_lc_pm_cprof);
 
 typedef struct {
 	vir_bytes name;
@@ -585,14 +595,6 @@ typedef struct {
 	uint8_t padding[44];
 } mess_lc_readclock_rtcdev;
 _ASSERT_MSG_SIZE(mess_lc_readclock_rtcdev);
-
-typedef struct {
-	unsigned long request;
-	vir_bytes arg;
-
-	uint8_t padding[48];
-} mess_lc_svrctl;
-_ASSERT_MSG_SIZE(mess_lc_svrctl);
 
 typedef struct {
 	vir_bytes name;
@@ -1018,6 +1020,17 @@ typedef struct {
 _ASSERT_MSG_SIZE(mess_lsys_krn_sys_copy);
 
 typedef struct {
+	endpoint_t endpt;
+	int action;
+	vir_bytes ctl_ptr;
+	vir_bytes mem_ptr;
+	size_t mem_size;
+
+	uint8_t padding[36];
+} mess_lsys_krn_sys_cprof;
+_ASSERT_MSG_SIZE(mess_lsys_krn_sys_cprof);
+
+typedef struct {
 	int request;
 	int port;
 	uint32_t value;
@@ -1113,6 +1126,14 @@ typedef struct {
 	uint8_t padding[36];
 } mess_lsys_krn_sys_privctl;
 _ASSERT_MSG_SIZE(mess_lsys_krn_sys_privctl);
+
+typedef struct {
+	vir_bytes ctl_ptr;
+	vir_bytes mem_ptr;
+
+	uint8_t padding[48];
+} mess_lsys_krn_sys_profbuf;
+_ASSERT_MSG_SIZE(mess_lsys_krn_sys_profbuf);
 
 typedef struct {
 	int request;
@@ -1292,6 +1313,14 @@ typedef struct {
 	uint8_t padding[52];
 } mess_lsys_sched_scheduling_stop;
 _ASSERT_MSG_SIZE(mess_lsys_sched_scheduling_stop);
+
+typedef struct {
+	int request;
+	vir_bytes arg;
+
+	uint8_t padding[48];
+} mess_lsys_svrctl;
+_ASSERT_MSG_SIZE(mess_lsys_svrctl);
 
 typedef struct {
 	int request;
@@ -1796,10 +1825,10 @@ typedef struct {
 _ASSERT_MSG_SIZE(mess_vfs_fs_newnode);
 
 typedef struct {
+	uint64_t count;
 	ino_t inode;
-	unsigned int count;
 
-	uint8_t data[44];
+	uint8_t data[40];
 } mess_vfs_fs_putnode;
 _ASSERT_MSG_SIZE(mess_vfs_fs_putnode);
 
@@ -1929,7 +1958,7 @@ typedef struct {
 	off_t pos;
 	cp_grant_id_t grant;
 	size_t count;
-	unsigned long request;
+	int request;
 	int flags;
 	endpoint_t id;
 	endpoint_t user;
@@ -1995,40 +2024,46 @@ typedef struct {
 _ASSERT_MSG_SIZE(mess_vmmcp_reply);
 
 typedef struct {
-       int avbl_groups; 
-       int gid[13]; /* Group ID */
+       int avbl_groups; /* Total number of available groups */ 
+       int gid[13]; /* list of Group ID's */
 } mess_topic_lookup;
 _ASSERT_MSG_SIZE(mess_topic_lookup);
+
 typedef struct {
        int gid; /* Group ID */
        uint8_t padding[52];
 } mess_topic_create;
 _ASSERT_MSG_SIZE(mess_topic_create);
+
 typedef struct {
        int gid; /* Group ID */
        uint8_t padding[52];
 } mess_topic_publisher;
 _ASSERT_MSG_SIZE(mess_topic_publisher);
+
 typedef struct {
        int gid; /* Group ID */
        uint8_t padding[52];
 } mess_topic_subscriber;
 _ASSERT_MSG_SIZE(mess_topic_subscriber);
+
 typedef struct {
        int gid; /* Group ID */
-       int seqno;
-       char topic[16];
+       int seqno; /* sequence number of message */
+       char topic[16]; /*  message */
        uint8_t padding[32];
 } mess_topic_publish;
 _ASSERT_MSG_SIZE(mess_topic_publish);
+
 typedef struct {
        int gid; /* Group ID */
-       int seqno;
-       int senderpid;
-       char topic[16];
+       int seqno; /* sequence number of message */
+       int senderpid; /* message sender pid */
+       char topic[16]; /* message */
        uint8_t padding[28];
 } mess_topic_retrieve;
 _ASSERT_MSG_SIZE(mess_topic_retrieve);
+
 typedef struct {
 	endpoint_t m_source;		/* who sent the message */
 	int m_type;			/* what kind of message is it */
@@ -2039,6 +2074,7 @@ typedef struct {
                 mess_topic_subscriber   m_tsr;
                 mess_topic_publish      m_tp;
                 mess_topic_retrieve     m_tr;
+
 		mess_u8			m_u8;
 		mess_u16		m_u16;
 		mess_u32		m_u32;
@@ -2087,6 +2123,7 @@ typedef struct {
 		mess_lc_ipc_shmctl	m_lc_ipc_shmctl;
 		mess_lc_ipc_shmdt	m_lc_ipc_shmdt;
 		mess_lc_ipc_shmget	m_lc_ipc_shmget;
+		mess_lc_pm_cprof	m_lc_pm_cprof;
 		mess_lc_pm_exec		m_lc_pm_exec;
 		mess_lc_pm_exit		m_lc_pm_exit;
 		mess_lc_pm_getsid	m_lc_pm_getsid;
@@ -2106,7 +2143,6 @@ typedef struct {
 		mess_lc_pm_time		m_lc_pm_time;
 		mess_lc_pm_waitpid	m_lc_pm_waitpid;
 		mess_lc_readclock_rtcdev m_lc_readclock_rtcdev;
-		mess_lc_svrctl		m_lc_svrctl;
 		mess_lc_vfs_chown	m_lc_vfs_chown;
 		mess_lc_vfs_close	m_lc_vfs_close;
 		mess_lc_vfs_creat	m_lc_vfs_creat;
@@ -2154,6 +2190,7 @@ typedef struct {
 		mess_lsys_krn_sys_abort m_lsys_krn_sys_abort;
 		mess_lsys_krn_sys_clear m_lsys_krn_sys_clear;
 		mess_lsys_krn_sys_copy	m_lsys_krn_sys_copy;
+		mess_lsys_krn_sys_cprof m_lsys_krn_sys_cprof;
 		mess_lsys_krn_sys_devio m_lsys_krn_sys_devio;
 		mess_lsys_krn_sys_diagctl m_lsys_krn_sys_diagctl;
 		mess_lsys_krn_sys_exec	m_lsys_krn_sys_exec;
@@ -2164,6 +2201,7 @@ typedef struct {
 		mess_lsys_krn_sys_irqctl m_lsys_krn_sys_irqctl;
 		mess_lsys_krn_sys_memset m_lsys_krn_sys_memset;
 		mess_lsys_krn_sys_privctl m_lsys_krn_sys_privctl;
+		mess_lsys_krn_sys_profbuf m_lsys_krn_sys_profbuf;
 		mess_lsys_krn_sys_sdevio m_lsys_krn_sys_sdevio;
 		mess_lsys_krn_sys_setalarm m_lsys_krn_sys_setalarm;
 		mess_lsys_krn_sys_setgrant m_lsys_krn_sys_setgrant;
@@ -2184,6 +2222,7 @@ typedef struct {
 		mess_lsys_pm_srv_fork	m_lsys_pm_srv_fork;
 		mess_lsys_sched_scheduling_start m_lsys_sched_scheduling_start;
 		mess_lsys_sched_scheduling_stop m_lsys_sched_scheduling_stop;
+		mess_lsys_svrctl	m_lsys_svrctl;
 		mess_lsys_tty_fkey_ctl	m_lsys_tty_fkey_ctl;
 		mess_lsys_vfs_checkperms m_lsys_vfs_checkperms;
 		mess_lsys_vfs_copyfd	m_lsys_vfs_copyfd;
